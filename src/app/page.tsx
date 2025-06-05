@@ -1,6 +1,43 @@
-import Image from "next/image";
+import Image from 'next/image';
 
-export default function Home() {
+type TLaunch = {
+  mission_name: string;
+  launch_date_utc: string;
+  rocket: {
+    rocket_name: string;
+  };
+  links: {
+    video_link: string;
+    mission_patch_small: string;
+  };
+};
+
+export default async function Home() {
+  // Fetch posts from WordPress GraphQL API
+  const res = await fetch('https://spacex-production.up.railway.app/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      query: `
+      {
+        launchesPast(limit: 300, sort: "launch_date_utc", order: "desc") {
+          mission_name
+          launch_date_utc
+          rocket {
+            rocket_name
+          }
+          links {
+            video_link
+            mission_patch_small
+          }
+        }
+      }
+    `,
+    }),
+  });
+  const json = await res.json();
+  const launches: TLaunch[] = json.data.launchesPast;
+
   return (
     <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
       <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
@@ -13,16 +50,24 @@ export default function Home() {
           priority
         />
         <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
+          {launches.map((item) => (
+            <li key={item.mission_name} className="mb-2 tracking-[-.01em]">
+              {item.mission_name} - {item.rocket.rocket_name} -{' '}
+              <a
+                className="text-blue-500 hover:underline"
+                href={item.links.video_link}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Watch Video
+              </a>
+              <br />
+              <span className="text-gray-500">
+                Launch Date:{' '}
+                {new Date(item.launch_date_utc).toLocaleDateString()}
+              </span>
+            </li>
+          ))}
         </ol>
 
         <div className="flex gap-4 items-center flex-col sm:flex-row">
